@@ -15,8 +15,6 @@
 
 Большая часть кода написана нейросетью:
 https://chat.deepseek.com/
-Исходный код: 
-https://github.com/InolMax/InterstellarX/blob/main/Main.py
 В основе всего несколько формул из сайта 
 https://projectrho.com/public_html/rocket/torchships.php
 
@@ -37,7 +35,5 @@ May not work accurately at high speeds, since the correction for the relativisti
 
 Most of the code is written by a neural network:
 https://chat.deepseek.com/
-Source code:
-https://github.com/InolMax/InterstellarX/blob/main/Main.py
 Based on just a few formulas from the site
 https://projectrho.com/public_html/rocket/torchships.php
