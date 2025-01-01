@@ -1,0 +1,20 @@
+# Игнорировать папки
+
+/venv/
+/parameters
+/RADMY
+
+# Игнорировать конкретные файлы
+/app_icon.ico
+/loadimage.png
+/Main.spec
+
+# Игнорировать все файлы с расширением .pyc
+*.pyc
+*.json
+*.rar
+
+# Исключить файлы, которые нужно отслеживать
+!/Main
+!/README.md
+!/requirements.txt
