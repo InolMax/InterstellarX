@@ -18,9 +18,9 @@ try:
     pyi_splash.close()  # Закрыть загрузочный экран
 except ImportError:
     pass  # Пропустить, если модуль недоступен
-
-
-
+ 
+ 
+ 
 class RoundedInputWidget(QFrame):
     def __init__(self, label_text, parent=None):
         super().__init__(parent)
@@ -48,20 +48,20 @@ class RoundedInputWidget(QFrame):
         self.layout.addWidget(self.label)
         self.entry = QLineEdit()
         self.layout.addWidget(self.entry)
-
+ 
 class RocketCalculatorApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("InterstellarCalculator_v1.0")
+        self.setWindowTitle("InterstellarX")
         self.setGeometry(100, 100, 1200, 800)
-
+ 
         # Устанавливаем иконку окна в виде цвета (голубой)
         # Создаём иконку из цвета
         pixmap = QPixmap(32, 32)
         pixmap.fill(QColor(88, 192, 208))  # Голубой цвет
         icon = QIcon(pixmap)
         self.setWindowIcon(icon)
-
+ 
         # Устанавливаем темный фон для всего приложения
         self.setStyleSheet("""
             QMainWindow {
@@ -72,7 +72,7 @@ class RocketCalculatorApp(QMainWindow):
                 color: #ECEFF4;
             }
         """)
-
+ 
         # Основной виджет и layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -277,6 +277,14 @@ class RocketCalculatorApp(QMainWindow):
         self.output_area.setMaximumWidth(QApplication.primaryScreen().size().width() - 40)
         scroll_layout.addWidget(self.output_area)
  
+        self.calculation_stopped = False  # Флаг для остановки расчета
+ 
+    def reset_to_initial_state(self):
+        """Сброс программы в начальное состояние."""
+        self.progress_bar.setValue(0)
+        self.progress_bar.setRange(0, 100)  # Обычное состояние
+        self.output_area.clear()
+        self.calculation_stopped = False  # Сброс флага
     def setup_graph_tab(self):
         layout = QVBoxLayout(self.graph_tab)
  
@@ -343,6 +351,7 @@ class RocketCalculatorApp(QMainWindow):
         """Применяет стиль построения графика (например, cyberpunk)"""
         plt.style.use("cyberpunk")  # Применяем стиль "cyberpunk"
     def calculate(self):
+        self.calculation_stopped = False
         try:
             # Заменяем запятую на точку для всех введенных значений
             Mpn = float(self.entry_Mpn.text().replace(',', '.'))
@@ -359,6 +368,13 @@ class RocketCalculatorApp(QMainWindow):
             Dist = float(self.entry_Dist.text().replace(',', '.')) * 9.461e15
         except ValueError:
             QMessageBox.critical(self, "Ошибка", "Пожалуйста, введите корректные числа.")
+            return
+        # Проверка на корректность введенных значений
+        if F_end <= F_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение тяги должно быть больше начального.")
+            return
+        if Mf_end <= Mf_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение массы топлива должно быть больше начального.")
             return
  
         self.progress_bar.setMaximum(int((F_end - F_start) / stepF * (Mf_end - Mf_start) / stepMf))
@@ -391,9 +407,9 @@ class RocketCalculatorApp(QMainWindow):
         Savedbest_M1f = None
  
         F = F_start
-        while F <= F_end:
+        while F <= F_end and not self.calculation_stopped:
             Mf = Mf_start
-            while Mf <= Mf_end:
+            while Mf <= Mf_end and not self.calculation_stopped:
                 if self.two_stage_checkbox.isChecked():
                     current_value, best_F1, best_M1f, current_MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc, T1, T2, Mass1, Mass2, D1, D2, V1, V2, DistAcc, DistCruise, MaxV, TimeCruise, Mdy1, Mdy2, GForce1, GForce2 = self.calculate_two_stage(F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, F_end)
                     if current_value < min_t:
@@ -424,15 +440,24 @@ class RocketCalculatorApp(QMainWindow):
                         best_GForce2 = GForce2
                 else:
                     current_value, current_MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc = self.calculate_single_stage(F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist)
+                    # Если расчеты были остановлены, сбрасываем состояние и выходим из цикла
+                    if self.calculation_stopped:
+                        self.reset_to_initial_state()
+                        return
                     # Проверка на inf в TimeCruise
                     if self.two_stage_checkbox.isChecked() and math.isinf(TimeCruise):
                         self.progress_bar.setFormat("Ошибка. Возможно мы не успели потратить топливо")
                         self.progress_bar.setValue(0)
+                        QMessageBox.warning(self, "error 450","Возможно мы не успели потратить топливо")
+ 
+                        self.calculation_stopped = True
                         return
  
                     elif not self.two_stage_checkbox.isChecked() and math.isinf(current_value):
                         self.progress_bar.setFormat("Ошибка. Возможно мы не успели потратить топливо")
                         self.progress_bar.setValue(0)
+                        QMessageBox.warning(self, "error 458","Возможно мы не успели потратить топливо")
+                        self.calculation_stopped = True
                         return
  
                     # Возвращаем стандартный формат ProgressBar
@@ -494,7 +519,8 @@ class RocketCalculatorApp(QMainWindow):
         if u_at_min_t is not None:
             result_text += f"Удельный импульс: {u_at_min_t:.2f} м/с\n"
             if not self.two_stage_checkbox.isChecked():
-                result_text += f"Максимальное ускорение (g-force): {MaxAcc_at_min_t:.4f} g\n\n\n"
+                result_text += f"Максимальное ускорение (g-force): {MaxAcc_at_min_t:.4f} g\n"
+                result_text += f"Оптимальная тяга: {min_F} Н\n\n\n"
                 result_text += f"Создано для группы https://vk.com/newexpanse\n"
                 result_text += f"Разработал: https://vk.com/wendelstein7x\n"
                 result_text += f"Почта: sun_maksim_@mail.ru\n"
@@ -517,18 +543,22 @@ class RocketCalculatorApp(QMainWindow):
             result_text += f"При помощи нейросети: deepseek.com\n"
             result_text += f"Pydroid 3 + PySide6\n"
             result_text += f"V1.0 01.01.2025\n"
+        self.reset_to_initial_state()
  
         self.output_area.setPlainText(result_text)
  
     def calculate_single_stage(self, F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist):
+        if self.calculation_stopped:
+            return float('inf'), float('inf'), None, None, None, None, None
         newMpower = Mpower_base * 1000 / F_base * F
         newMfdot = Mfdot_base / F_base * F
         u = F / newMfdot
         TimeAcc = Mf * 1000 / newMfdot
-        MassSum = Mf * 1000 + Mf * 1000 * q + newMpower + Mpn
+        MassSum = Mf * 1000 + Mf * 1000 * q + newMpower + Mpn*1000
  
         if MassSum <= newMfdot * TimeAcc:
-            return float('inf'), float('inf'), None, None, None, None, None
+             QMessageBox.warning(self, "error 552","")
+             self.calculation_stopped = True
  
         DistAcc = u * ((TimeAcc - MassSum / newMfdot) * math.log(MassSum / (MassSum - newMfdot * TimeAcc)) + TimeAcc)
         MaxV = u * math.log(MassSum / (MassSum - newMfdot * TimeAcc)) if MassSum > newMfdot * TimeAcc else float('inf')
@@ -538,15 +568,19 @@ class RocketCalculatorApp(QMainWindow):
         DistCruise = Dist - DistAcc
         TimeCruise = DistCruise / MaxV if MaxV > 0 else float('inf')
         if DistAcc > Dist:
-            TimeCruise = float('inf')
+             QMessageBox.warning(self, "error 570", "Не успел потратить топливо")
+             self.calculation_stopped = True
  
         TimeSum = (TimeAcc + TimeCruise) / 31536000
  
         percent_DistAcc = (DistAcc / Dist) * 100 if Dist > 0 else float('inf')
         MaxAcc = F / (Mf * 1000 + newMpower + Mpn * 1000) / 9.81
-        return TimeSum, MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc / 31536000
+        return TimeSum, MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc
  
     def calculate_two_stage(self, F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, F_end):
+ 
+        if self.calculation_stopped:
+            return float('inf'), float('inf'), None, None, None, None, None, None
  
         u = F_base / Mfdot_base
  
@@ -575,25 +609,29 @@ class RocketCalculatorApp(QMainWindow):
         best_GForce2 = None
         M1f = None
         M2f = None
-
+ 
         # Инициализация TimeSum
         TimeSum = float('inf')
-        
+ 
  
         for F1 in np.arange(0.01*F, 0.99 * F, 0.01 * F):  
-            for M1f in np.arange(0.5 * Mf, 0.99 * Mf, 0.01 * Mf):  # Начинаем перебор с 0.5 * Mf
+            for M1f in np.arange(0.01 * Mf, 0.99 * Mf, 0.01 * Mf):  # Начинаем перебор с 0.5 * Mf
+                # Если расчеты были остановлены, сбрасываем состояние и выходим из цикла
+                if self.calculation_stopped:
+                        self.reset_to_initial_state()
+                        return
                 newMpower = Mpower_base * 1000 / F_base * F
                 newMfdot = Mfdot_base / F_base * F
                 F2 = F - F1
-
-
+ 
+ 
                 M2f = Mf - M1f
-
+ 
                 if F_end > F_base:
                   if F1 < F_base or F2 < F_base:
                     break
-
-
+ 
+ 
  
                 M1f_kg = M1f * 1000
                 M2f_kg = M2f * 1000
@@ -625,13 +663,22 @@ class RocketCalculatorApp(QMainWindow):
  
                 # Время крейсерского полета
                 if DistCruise < 0:
-                    TimeCruise = float('inf')
+                    QMessageBox.warning(self, "error 655","Не успел потратить топливо")
+                    self.calculation_stopped = True
+                    DistCruise=float('inf')
+                    break
                 else:
                     MaxV = V1 + V2
  
                     RelativeLossCoeff=math.tanh(MaxV/2.998e+8)
                     MaxV = RelativeLossCoeff*2.998e+8
-                    TimeCruise = DistCruise / MaxV if MaxV > 0 else float('inf')
+                    if MaxV > 0:
+                        TimeCruise = DistCruise / MaxV 
+                    else:
+                        QMessageBox.warning(self, "error 662","Слишком маленькая скорость")
+                        self.calculation_stopped = True
+                        TimeCruise = float('inf')
+                        break
  
                 # Общее время ускорения
                 TimeAcc = T1 + T2
@@ -674,6 +721,7 @@ class RocketCalculatorApp(QMainWindow):
         return min_TimeSum, best_F1, best_M1f, max_v_at_min_t, percent_DistAcc_at_min_t, MaxAcc_at_min_t, u, MassSum_at_min_t, TimeAcc_at_min_t, best_T1, best_T2, best_Mass1, best_Mass2, best_D1, best_D2, best_V1, best_V2, best_DistAcc, best_DistCruise, max_v_at_min_t, best_TimeCruise, best_Mdy1, best_Mdy2, best_GForce1, best_GForce2
  
     def plot_graph(self):
+        self.calculation_stopped = False
         try:
             F_start = float(self.entry_F_start.text().replace(',', '.'))
             F_end = float(self.entry_F_end.text().replace(',', '.'))
@@ -685,6 +733,13 @@ class RocketCalculatorApp(QMainWindow):
         except ValueError:
             QMessageBox.critical(self, "Ошибка", "Пожалуйста, введите корректные числа.")
             return
+        # Проверка на корректность введенных значений
+        if F_end <= F_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение тяги должно быть больше начального.")
+            return
+        if Mf_end <= Mf_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение массы топлива должно быть больше начального.")
+            return
  
         self.progress_bar.setMaximum(int((F_end - F_start) / stepF * (Mf_end - Mf_start) / stepMf))
         self.progress_bar.setValue(0)
@@ -693,9 +748,9 @@ class RocketCalculatorApp(QMainWindow):
         times = []
  
         F = F_start
-        while F <= F_end:
+        while F <= F_end and not self.calculation_stopped:
             Mf = Mf_start
-            while Mf <= Mf_end:
+            while Mf <= Mf_end and not self.calculation_stopped:
                 if self.two_stage_checkbox.isChecked():
                     # Используем только current_value, остальные значения игнорируем
                     current_value, *_ = self.calculate_two_stage(F, Mf, float(self.entry_Mpn.text().replace(',', '.')), float(self.entry_q.text().replace(',', '.')), float(self.entry_F_base.text().replace(',', '.')), float(self.entry_Mpower_base.text().replace(',', '.')), float(self.entry_Mfdot_base.text().replace(',', '.')), Dist, F_end)
@@ -733,6 +788,7 @@ class RocketCalculatorApp(QMainWindow):
  
         # Переключаемся на вкладку с графиком
         self.tabs.setCurrentIndex(1)
+        self.reset_to_initial_state()
  
 if __name__ == '__main__':
     app = QApplication(sys.argv)
