@@ -697,7 +697,7 @@ class RocketCalculatorApp(QMainWindow):
                   min_TimeSum = TimeSum
                   best_F1 = F1
                   best_M1f = M1f
-                  max_v_at_min_t = V1 + V2
+                  max_v_at_min_t = MaxV
                   percent_DistAcc_at_min_t = (DistAcc / Dist) * 100 if Dist > 0 else float('inf')
                   MaxAcc_at_min_t = max(GForce1, GForce2)
                   MassSum_at_min_t = Mass1 / 1000  # Mass1 уже включает Mass2
