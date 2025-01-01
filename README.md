@@ -20,7 +20,7 @@ It is also possible to calculate a two-stage option.
 .exe файл для Windows
 На телефонах запускать можно используя исходный код в Pydroid 3 IDE после импорта в разделе pip Pydroid 3 необходимых библиотек.
 Сделать билд на телефонах слишком сложно из-за использования библиотеки PySyde6
-Не проверено другими людьми, может иметь ошибки в работе или в выводимых параметрах. Я не опытный программист, так что код состоит из одного скрипта (python - 743 строки), плохо читаемый и не расширяемый, любое, даже мелкое улучшение будет трудно реализуемо.
+Не проверено другими людьми, может иметь ошибки в работе или в выводимых параметрах. Я не опытный программист, так что код состоит из одного скрипта, плохо читаемый и не расширяемый, любое, даже мелкое улучшение будет трудно реализуемо.
 Может не точно работать при больших скоростях, поскольку поправка на релятивистский эффект учитывается только как коэффициент на скорость при полете без топлива.
 
 Возможные проблемы:
@@ -48,7 +48,7 @@ projectrho.com/public_htm...
 .exe file for Windows
 On phones, you can run it using the source code in the Pydroid 3 IDE after importing the necessary libraries in the pip section of Pydroid 3.
 It is too difficult to build on phones due to the use of the PySyde6 library
-Not tested by other people, may have errors in operation or in the output parameters. I am not an experienced programmer, so the code consists of one script (python - 743 lines), poorly readable and not expandable, any, even minor, improvement will be difficult to implement.
+Not tested by other people, may have errors in operation or in the output parameters. I am not an experienced programmer, so the code consists of one script, poorly readable and not expandable, any, even minor, improvement will be difficult to implement.
 May not work accurately at high speeds, since the correction for the relativistic effect is taken into account only as a coefficient for the speed when flying without fuel.
 
 Possible problems:
