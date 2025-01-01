@@ -1,15 +1,21 @@
 # InterstellarX
-![image](https://github.com/user-attachments/assets/9fc8d92b-3555-4c4f-ba9e-402f312b359f)
-![image](https://github.com/user-attachments/assets/7f5110a6-a433-4de0-9520-3e93e57bff31)
-![image](https://github.com/user-attachments/assets/79f40624-80a4-49ed-b682-6e190de1cd0a)
-![image](https://github.com/user-attachments/assets/1fdef8b4-0921-427f-a340-d612f2179a16)
-
-
 Я написал программу для расчета параметров Звездолета.
 
 Определяет оптимальные параметры в заданных вами диапазонах.
 Выводит график времени полета в зависимости от массы топлива.
 Есть возможность рассчитать так же и двухступенчатый вариант.
+
+I wrote a program to calculate the parameters of the Starship.
+
+Determines the optimal parameters in the ranges you specify.
+Displays a graph of the flight time depending on the mass of fuel.
+It is possible to calculate a two-stage option as well.
+
+![image](https://github.com/user-attachments/assets/9fc8d92b-3555-4c4f-ba9e-402f312b359f)
+![image](https://github.com/user-attachments/assets/7f5110a6-a433-4de0-9520-3e93e57bff31)
+![image](https://github.com/user-attachments/assets/79f40624-80a4-49ed-b682-6e190de1cd0a)
+![image](https://github.com/user-attachments/assets/1fdef8b4-0921-427f-a340-d612f2179a16)
+
 
 .exe файл для Windows
 На телефонах запускать можно используя исходный код в Pydroid 3 IDE после импорта в разделе pip Pydroid 3 необходимых библиотек.
@@ -25,11 +31,7 @@ https://projectrho.com/public_html/rocket/torchships.php
 
 
 
-I wrote a program to calculate the parameters of the Starship.
 
-Determines the optimal parameters in the ranges you specify.
-Displays a graph of the flight time depending on the mass of fuel.
-It is possible to calculate a two-stage option as well.
 
 .exe file for Windows
 On phones, you can run it using the source code in the Pydroid 3 IDE after importing the necessary libraries in the pip section of Pydroid 3.
