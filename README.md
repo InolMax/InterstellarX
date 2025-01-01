@@ -1,4 +1,9 @@
 # InterstellarX
+![image](https://github.com/user-attachments/assets/9fc8d92b-3555-4c4f-ba9e-402f312b359f)
+![image](https://github.com/user-attachments/assets/7f5110a6-a433-4de0-9520-3e93e57bff31)
+![image](https://github.com/user-attachments/assets/79f40624-80a4-49ed-b682-6e190de1cd0a)
+![image](https://github.com/user-attachments/assets/1fdef8b4-0921-427f-a340-d612f2179a16)
+
 
 Я написал программу для расчета параметров Звездолета.
 
