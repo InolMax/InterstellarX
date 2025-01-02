@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 PySide6
 numpy
 matplotlib
+=======
+PySide6
+numpy
+matplotlib
+>>>>>>> 07f495cd624aaf2178718e4ca60063d5a2c8340e
 mplcyberpunk

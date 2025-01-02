@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QScroller
-from PySide6.QtGui import QIcon, QPixmap, QColor  # Добавлено для иконки
+from PySide6.QtGui import QIcon, QPixmap, QColor # Добавлено для иконки
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -54,6 +54,7 @@ class RocketCalculatorApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("InterstellarX")
         self.setGeometry(100, 100, 1200, 800)
+        self.calculation_stopped = False  # Инициализация флага
  
         # Устанавливаем иконку окна в виде цвета (голубой)
         # Создаём иконку из цвета
@@ -175,6 +176,9 @@ class RocketCalculatorApp(QMainWindow):
         self.entry_stepMf = self.create_input_field("Шаг перебора масс, тонн:", scroll_layout)
         self.entry_Dist = self.create_input_field("Расстояние, световые годы:", scroll_layout)
         self.entry_Dist.setText("4.367")  # Значение по умолчанию
+        self.entry_initial_speed = self.create_input_field("Начальная скорость, км/с:", scroll_layout)
+        self.entry_initial_speed.setText("0")  # Значение по умолчанию
+        
  
         # CheckBox для двухступенчатой ракеты
         self.two_stage_checkbox = QCheckBox("Двухступенчатый")
@@ -277,8 +281,21 @@ class RocketCalculatorApp(QMainWindow):
         self.output_area.setMaximumWidth(QApplication.primaryScreen().size().width() - 40)
         scroll_layout.addWidget(self.output_area)
  
-        self.calculation_stopped = False  # Флаг для остановки расчета
- 
+
+    def validate_initial_speed(self):
+        try:
+            speed = float(self.entry_initial_speed.text().replace(',', '.'))  # Преобразуем в число
+            if speed > 299792.458:  # Скорость света в км/с
+                QMessageBox.warning(self, "Ошибка", "Математика и физика запрещают превышать 299792.458 км/с.")
+                self.calculation_stopped = True
+                self.progress_bar.setValue(0)  # Сбрасываем прогресс-бар
+                self.progress_bar.setRange(0, 100)  # Возвращаем прогресс-бар в обычное состояние
+                return False
+                self.calculation_stopped = False
+            return True
+        except ValueError:
+            QMessageBox.warning(self, "Ошибка", "Введите корректное число.")
+            return False
     def reset_to_initial_state(self):
         """Сброс программы в начальное состояние."""
         self.progress_bar.setValue(0)
@@ -318,6 +335,7 @@ class RocketCalculatorApp(QMainWindow):
             "stepF": self.entry_stepF.text(),
             "stepMf": self.entry_stepMf.text(),
             "Dist": self.entry_Dist.text(),
+            "initial_speed": self.entry_initial_speed.text(),
         }
         with open("parameters.json", "w") as file:
             json.dump(parameters, file)
@@ -347,6 +365,7 @@ class RocketCalculatorApp(QMainWindow):
         self.entry_stepF.setText(parameters.get("stepF", ""))
         self.entry_stepMf.setText(parameters.get("stepMf", ""))
         self.entry_Dist.setText(parameters.get("Dist", "4.367"))
+        self.entry_initial_speed.setText(parameters.get("initial_speed", "0"))
     def apply_graph_style(self):
         """Применяет стиль построения графика (например, cyberpunk)"""
         plt.style.use("cyberpunk")  # Применяем стиль "cyberpunk"
@@ -366,15 +385,20 @@ class RocketCalculatorApp(QMainWindow):
             stepF = float(self.entry_stepF.text().replace(',', '.'))
             stepMf = float(self.entry_stepMf.text().replace(',', '.'))
             Dist = float(self.entry_Dist.text().replace(',', '.')) * 9.461e15
+            initial_speed = float(self.entry_initial_speed.text().replace(',', '.')) * 1000
         except ValueError:
             QMessageBox.critical(self, "Ошибка", "Пожалуйста, введите корректные числа.")
             return
         # Проверка на корректность введенных значений
-        if F_end <= F_start:
-            QMessageBox.critical(self, "Ошибка", "Конечное значение тяги должно быть больше начального.")
+        if F_end < F_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение тяги должно быть больше или равно начальному")
             return
-        if Mf_end <= Mf_start:
-            QMessageBox.critical(self, "Ошибка", "Конечное значение массы топлива должно быть больше начального.")
+        if Mf_end < Mf_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение массы топлива должно быть больше или равно начальному")
+            return
+        speed_of_light = 299792458  # Скорость света в м/с
+        if initial_speed > speed_of_light:
+            QMessageBox.critical(self, "Ошибка", "Начальная скорость не может превышать скорость света (299792458 м/с)")
             return
  
         self.progress_bar.setMaximum(int((F_end - F_start) / stepF * (Mf_end - Mf_start) / stepMf))
@@ -411,7 +435,7 @@ class RocketCalculatorApp(QMainWindow):
             Mf = Mf_start
             while Mf <= Mf_end and not self.calculation_stopped:
                 if self.two_stage_checkbox.isChecked():
-                    current_value, best_F1, best_M1f, current_MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc, T1, T2, Mass1, Mass2, D1, D2, V1, V2, DistAcc, DistCruise, MaxV, TimeCruise, Mdy1, Mdy2, GForce1, GForce2 = self.calculate_two_stage(F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, F_end)
+                    current_value, best_F1, best_M1f, current_MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc, T1, T2, Mass1, Mass2, D1, D2, V1, V2, DistAcc, DistCruise, MaxV, TimeCruise, Mdy1, Mdy2, GForce1, GForce2 = self.calculate_two_stage(F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, F_end,initial_speed)
                     if current_value < min_t:
                         Savedbest_M1f = best_M1f
                         min_t = current_value
@@ -439,7 +463,7 @@ class RocketCalculatorApp(QMainWindow):
                         best_GForce1 = GForce1
                         best_GForce2 = GForce2
                 else:
-                    current_value, current_MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc = self.calculate_single_stage(F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist)
+                    current_value, current_MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc = self.calculate_single_stage(F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist,initial_speed)
                     # Если расчеты были остановлены, сбрасываем состояние и выходим из цикла
                     if self.calculation_stopped:
                         self.reset_to_initial_state()
@@ -526,7 +550,7 @@ class RocketCalculatorApp(QMainWindow):
                 result_text += f"Почта: sun_maksim_@mail.ru\n"
                 result_text += f"При помощи нейросети: deepseek.com\n"
                 result_text += f"Pydroid 3 + PySide6\n"
-                result_text += f"V1.1 01.01.2025\n"
+                result_text += f"V1.1 02.01.2025\n"
  
         if self.two_stage_checkbox.isChecked():
             result_text += f"Тяга первой ступени: {F_base/Mpower_base/1000*best_Mdy1:.2f} Н\n"
@@ -542,12 +566,14 @@ class RocketCalculatorApp(QMainWindow):
             result_text += f"Почта: sun_maksim_@mail.ru\n"
             result_text += f"При помощи нейросети: deepseek.com\n"
             result_text += f"Pydroid 3 + PySide6\n"
-            result_text += f"V1.1 01.01.2025\n"
+            result_text += f"V1.1 02.01.2025\n"
         self.reset_to_initial_state()
  
         self.output_area.setPlainText(result_text)
  
-    def calculate_single_stage(self, F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist):
+    def calculate_single_stage(self, F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, initial_speed):
+        if not self.validate_initial_speed():  # Проверяем скорость
+            return
         if self.calculation_stopped:
             return float('inf'), float('inf'), None, None, None, None, None
         newMpower = Mpower_base * 1000 / F_base * F
@@ -561,9 +587,14 @@ class RocketCalculatorApp(QMainWindow):
              self.calculation_stopped = True
  
         DistAcc = u * ((TimeAcc - MassSum / newMfdot) * math.log(MassSum / (MassSum - newMfdot * TimeAcc)) + TimeAcc)
-        MaxV = u * math.log(MassSum / (MassSum - newMfdot * TimeAcc)) if MassSum > newMfdot * TimeAcc else float('inf')
-        RelativeLossCoeff=math.tanh(MaxV/2.998e+8)
-        MaxV = RelativeLossCoeff*2.998e+8
+        MaxV = u * math.log(MassSum / (MassSum - newMfdot * TimeAcc)) + initial_speed if MassSum > newMfdot * TimeAcc else float('inf')
+        
+        v_initial_norm = initial_speed / 2.998e8
+        delta_V_norm = MaxV / 2.998e8
+
+        # Релятивистское сложение скоростей
+        v_final_norm = math.tanh(math.atanh(v_initial_norm) + delta_V_norm)
+        MaxV = v_final_norm*2.998e+8
  
         DistCruise = Dist - DistAcc
         TimeCruise = DistCruise / MaxV if MaxV > 0 else float('inf')
@@ -577,7 +608,7 @@ class RocketCalculatorApp(QMainWindow):
         MaxAcc = F / (Mf * 1000 + newMpower + Mpn * 1000) / 9.81
         return TimeSum, MaxV, percent_DistAcc, MaxAcc, u, MassSum, TimeAcc
  
-    def calculate_two_stage(self, F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, F_end):
+    def calculate_two_stage(self, F, Mf, Mpn, q, F_base, Mpower_base, Mfdot_base, Dist, F_end,initial_speed):
  
         if self.calculation_stopped:
             return float('inf'), float('inf'), None, None, None, None, None, None
@@ -669,6 +700,12 @@ class RocketCalculatorApp(QMainWindow):
                     break
                 else:
                     MaxV = V1 + V2
+                    v_initial_norm = initial_speed / 2.998e8
+                    delta_V_norm = MaxV / 2.998e8
+
+        # Релятивистское сложение скоростей
+                    v_final_norm = math.tanh(math.atanh(v_initial_norm) + delta_V_norm)
+                    MaxV = v_final_norm*2.998e+8
  
                     RelativeLossCoeff=math.tanh(MaxV/2.998e+8)
                     MaxV = RelativeLossCoeff*2.998e+8
@@ -721,6 +758,8 @@ class RocketCalculatorApp(QMainWindow):
         return min_TimeSum, best_F1, best_M1f, max_v_at_min_t, percent_DistAcc_at_min_t, MaxAcc_at_min_t, u, MassSum_at_min_t, TimeAcc_at_min_t, best_T1, best_T2, best_Mass1, best_Mass2, best_D1, best_D2, best_V1, best_V2, best_DistAcc, best_DistCruise, max_v_at_min_t, best_TimeCruise, best_Mdy1, best_Mdy2, best_GForce1, best_GForce2
  
     def plot_graph(self):
+        if not self.validate_initial_speed():  # Проверяем скорость
+            return
         self.calculation_stopped = False
         try:
             F_start = float(self.entry_F_start.text().replace(',', '.'))
@@ -730,62 +769,85 @@ class RocketCalculatorApp(QMainWindow):
             stepF = float(self.entry_stepF.text().replace(',', '.'))
             stepMf = float(self.entry_stepMf.text().replace(',', '.'))
             Dist = float(self.entry_Dist.text().replace(',', '.')) * 9.461e15
+            initial_speed = float(self.entry_initial_speed.text().replace(',', '.'))*1000
         except ValueError:
             QMessageBox.critical(self, "Ошибка", "Пожалуйста, введите корректные числа.")
             return
         # Проверка на корректность введенных значений
-        if F_end <= F_start:
-            QMessageBox.critical(self, "Ошибка", "Конечное значение тяги должно быть больше начального.")
+        if F_end < F_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение тяги должно быть больше или равно начальному")
             return
-        if Mf_end <= Mf_start:
-            QMessageBox.critical(self, "Ошибка", "Конечное значение массы топлива должно быть больше начального.")
+        if Mf_end < Mf_start:
+            QMessageBox.critical(self, "Ошибка", "Конечное значение массы топлива должно быть больше или равно начальному")
             return
- 
+
         self.progress_bar.setMaximum(int((F_end - F_start) / stepF * (Mf_end - Mf_start) / stepMf))
         self.progress_bar.setValue(0)
- 
-        masses = []
-        times = []
- 
+
+        # Отображаем график на вкладке
+        self.figure.clear()
+        ax = self.figure.add_subplot(1,7,(2,7))
+
+        # Применяем стиль "cyberpunk"
+        plt.style.use("cyberpunk")
+
+        self.figure.patch.set_facecolor('#222946')
+        ax.set_facecolor('#222946')
+
+        # Создаем colormap для плавного изменения цвета
+        norm = plt.Normalize(F_start, F_end)  # Нормализуем значения F
+        cmap = plt.get_cmap('viridis')  # Используем colormap 'viridis'
+
+        # Создаем colormap для свечения
+        cmap_glow = plt.get_cmap('cool')  # Цветовая карта для свечения
+
         F = F_start
         while F <= F_end and not self.calculation_stopped:
+            masses = []
+            times = []
             Mf = Mf_start
             while Mf <= Mf_end and not self.calculation_stopped:
                 if self.two_stage_checkbox.isChecked():
                     # Используем только current_value, остальные значения игнорируем
-                    current_value, *_ = self.calculate_two_stage(F, Mf, float(self.entry_Mpn.text().replace(',', '.')), float(self.entry_q.text().replace(',', '.')), float(self.entry_F_base.text().replace(',', '.')), float(self.entry_Mpower_base.text().replace(',', '.')), float(self.entry_Mfdot_base.text().replace(',', '.')), Dist, F_end)
+                    current_value, *_ = self.calculate_two_stage(F, Mf, float(self.entry_Mpn.text().replace(',', '.')), float(self.entry_q.text().replace(',', '.')), float(self.entry_F_base.text().replace(',', '.')), float(self.entry_Mpower_base.text().replace(',', '.')), float(self.entry_Mfdot_base.text().replace(',', '.')), Dist, F_end,initial_speed)
                 else:
-                    current_value, *_ = self.calculate_single_stage(F, Mf, float(self.entry_Mpn.text().replace(',', '.')), float(self.entry_q.text().replace(',', '.')), float(self.entry_F_base.text().replace(',', '.')), float(self.entry_Mpower_base.text().replace(',', '.')), float(self.entry_Mfdot_base.text().replace(',', '.')), Dist)
+                    current_value, *_ = self.calculate_single_stage(F, Mf, float(self.entry_Mpn.text().replace(',', '.')), float(self.entry_q.text().replace(',', '.')), float(self.entry_F_base.text().replace(',', '.')), float(self.entry_Mpower_base.text().replace(',', '.')), float(self.entry_Mfdot_base.text().replace(',', '.')), Dist,initial_speed)
                 if current_value != float('inf'):
                     times.append(current_value)
                     masses.append(Mf)
                 Mf += stepMf
                 self.progress_bar.setValue(self.progress_bar.value() + 1)
                 QApplication.processEvents()
+            
+            # Выбираем цвет из colormap в зависимости от значения F
+            color = cmap(norm(F))
+            # Выбираем цвет из цветовой карты для свечения
+            color_glow = cmap_glow(norm(F))
+
+            # Добавляем метку только для минимального и максимального значений F
+            if F == F_start or F == F_end:
+                label = f'F = {F:.2f} Н'
+            else:
+                label = None
+            # Строим линию для текущего цикла с выбранным цветом
+            ax.plot(masses, times, label=None, color=color_glow, alpha=0.7, linewidth=4)
+            ax.plot(masses, times, label=label, color=color)
+
             F += stepF
- 
-        # Отображаем график на вкладке
-        self.figure.clear()
-        ax = self.figure.add_subplot(1,7,(2,7))
- 
-        # Применяем стиль "cyberpunk"
-        plt.style.use("cyberpunk")
- 
-        self.figure.patch.set_facecolor('#222946')
-        ax.set_facecolor('#222946')
-        scatter = ax.scatter(masses, times, c=times, cmap='cool', marker='o')
+
         ax.set_title('Зависимость времени полета от массы топлива', fontsize=8, color='white')
         ax.set_xlabel('Масса топлива (тонн)', fontsize=8, color='white')
         ax.set_ylabel('Время полета (лет)', fontsize=8, color='white')
         ax.tick_params(axis='x', colors='white')
         ax.tick_params(axis='y', colors='white')
         ax.grid(True)
- 
+        ax.legend()
+
         # Добавляем дополнительные эффекты из mplcyberpunk
         mplcyberpunk.add_glow_effects()
- 
+
         self.canvas.draw()
- 
+
         # Переключаемся на вкладку с графиком
         self.tabs.setCurrentIndex(1)
         self.reset_to_initial_state()
